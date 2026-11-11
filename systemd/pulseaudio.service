@@ -1,0 +1,13 @@
+[Unit]
+Description=PulseAudio system server
+After=bluetooth.service
+Wants=bluetooth.service
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/pulseaudio --system --disallow-exit --disallow-module-loading=no
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

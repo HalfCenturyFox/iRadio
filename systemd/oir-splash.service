@@ -1,0 +1,13 @@
+[Unit]
+Description=OIR boot splash (framebuffer)
+DefaultDependencies=no
+After=systemd-udevd.service
+Before=sysinit.target radio-ui.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c 'echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null || true'
+ExecStart=/opt/radio/splash/splash-loop.sh
+
+[Install]
+WantedBy=sysinit.target

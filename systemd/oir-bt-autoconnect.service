@@ -1,0 +1,12 @@
+[Unit]
+Description=OIR Bluetooth auto-connect (last used device)
+After=bluetooth.service pulseaudio.service
+Wants=bluetooth.service pulseaudio.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/radio/bt-autoconnect.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

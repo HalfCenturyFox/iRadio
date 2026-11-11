@@ -1,0 +1,14 @@
+[Unit]
+Description=OIR Radio UI
+After=mpd.service
+Wants=mpd.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c 'echo 0 > /sys/class/vtconsole/vtcon1/bind || true'
+ExecStart=/opt/radio/ui/build/radio-ui --fb /dev/fb0 --touch /dev/input/event4
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

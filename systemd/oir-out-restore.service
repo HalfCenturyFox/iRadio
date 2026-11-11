@@ -1,0 +1,11 @@
+[Unit]
+Description=OIR restore last audio output (DAC/BT)
+After=pulseaudio.service mpd.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/radio/pulse-switch.sh restore
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
