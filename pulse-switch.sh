@@ -28,6 +28,11 @@ if [ "$TARGET" = "bt" ]; then
 fi
 
 S=$(sink_for "$TARGET")
+# fallback: ako trazeni izlaz ne postoji (npr. BT zvucnik je iskljucen), idi na DAC
+if [ -z "$S" ] && [ "$TARGET" != "dac" ]; then
+    TARGET=dac
+    S=$(sink_for dac)
+fi
 [ -z "$S" ] && exit 1
 
 pactl set-default-sink "$S" >/dev/null 2>&1
