@@ -26,6 +26,7 @@ sudo install -m 644 "$ROOT/CMakeLists.txt" "$ROOT/lv_conf.h" "$PREFIX/ui/"
 say "Assets"
 sudo install -m 644 "$ROOT/assets/splash800.rgb565" "$PREFIX/assets/splash800.rgb565"
 sudo install -m 644 "$ROOT/assets/bg800.rgb565" "$PREFIX/assets/bg800.rgb565"
+sudo install -m 644 "$ROOT/assets/nocover320.rgb565" "$PREFIX/assets/nocover320.rgb565"
 sudo install -m 644 "$ROOT/assets/splash800.rgb565" "$PREFIX/splash/splash.raw"
 if [ -d "$ROOT/assets/logos565" ]; then
     sudo mkdir -p "$PREFIX/assets/logos565"

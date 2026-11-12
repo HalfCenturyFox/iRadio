@@ -83,6 +83,9 @@ static void stations_center_active(void);
 static void stations_center_cb(lv_timer_t *t);
 static lv_obj_t *canvas_cover;
 static uint8_t cover_buf[COVER_W * COVER_H * 2];
+static uint8_t nocover_buf[COVER_W * COVER_H * 2];
+static int nocover_ready;
+#define NOCOVER_PATH "/opt/radio/assets/nocover320.rgb565"
 static int vol_drag;
 static int bt_mode;
 static char cur_url[512];
@@ -101,8 +104,21 @@ static void slugify(const char *in, char *out, size_t n)
     out[j] = 0;
 }
 
+static void nocover_init(void)
+{
+    FILE *f = fopen(NOCOVER_PATH, "rb");
+    if (!f) return;
+    size_t n = fread(nocover_buf, 1, sizeof(nocover_buf), f);
+    fclose(f);
+    if (n == sizeof(nocover_buf)) nocover_ready = 1;
+}
+
 static void cover_clear(void)
 {
+    if (nocover_ready) {
+        memcpy(cover_buf, nocover_buf, sizeof(cover_buf));
+        return;
+    }
     for (size_t i = 0; i + 1 < sizeof(cover_buf); i += 2) { cover_buf[i] = 0xC3; cover_buf[i+1] = 0x18; }
 }
 
@@ -2379,6 +2395,7 @@ void ui_pi_init(mpd_t *mpd, int mpd_connected)
 
     bg_init();
     splash_init();
+    nocover_init();
     last_station_load();
     build_splash();
     build_player();
