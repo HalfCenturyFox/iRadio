@@ -2309,7 +2309,10 @@ static void ui_timer(lv_timer_t *t)
             snprintf(topline, sizeof(topline), "%s", artist);
             if (strcmp(url, cur_art_url) != 0) {
                 snprintf(cur_art_url, sizeof(cur_art_url), "%s", url);
-                if (cover_fetch_file_rgb565("/mnt/nas", url, cover_buf, COVER_W, COVER_H) == 0) {
+                int cok = cover_fetch_file_rgb565("/mnt/nas", url, cover_buf, COVER_W, COVER_H);
+                if (cok != 0)   /* nema ugradjen cover: probaj sliku iz foldera */
+                    cok = cover_fetch_dir_rgb565("/mnt/nas", url, cover_buf, COVER_W, COVER_H);
+                if (cok == 0) {
                     lv_obj_invalidate(canvas_cover);
                 } else {
                     cover_clear();

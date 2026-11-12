@@ -1,4 +1,7 @@
 #include "cover.h"
+#include <dirent.h>
+#include <strings.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -234,3 +237,75 @@ int cover_fetch_file_rgb565(const char *music_dir, const char *uri, uint8_t *dst
     free(data);
     return rc;
 }
+
+/* Cover iz foldera numere (cover.jpg / folder.jpg / front.* / prvi jpg|png). */
+static int read_file(const char *path, unsigned char **out, size_t *outn)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) return -1;
+    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return -1; }
+    long n = ftell(f);
+    if (n <= 0) { fclose(f); return -1; }
+    rewind(f);
+    unsigned char *buf = malloc((size_t)n);
+    if (!buf) { fclose(f); return -1; }
+    size_t got = fread(buf, 1, (size_t)n, f);
+    fclose(f);
+    if (got != (size_t)n) { free(buf); return -1; }
+    *out = buf; *outn = got;
+    return 0;
+}
+
+static int score_img(const char *name)
+{
+    if (!strcasecmp(name, "cover.jpg") || !strcasecmp(name, "cover.jpeg")) return 100;
+    if (!strcasecmp(name, "folder.jpg") || !strcasecmp(name, "folder.jpeg")) return 90;
+    if (!strcasecmp(name, "front.jpg") || !strcasecmp(name, "front.jpeg")) return 85;
+    if (!strcasecmp(name, "cover.png")) return 80;
+    if (!strcasecmp(name, "folder.png")) return 75;
+    if (!strcasecmp(name, "front.png")) return 70;
+    if (!strcasecmp(name, "album.jpg") || !strcasecmp(name, "albumart.jpg")) return 60;
+    const char *d = strrchr(name, '.');
+    if (d && (!strcasecmp(d, ".jpg") || !strcasecmp(d, ".jpeg") || !strcasecmp(d, ".png"))) return 10;
+    return 0;
+}
+
+int cover_fetch_dir_rgb565(const char *music_dir, const char *uri, uint8_t *dst, int w, int h)
+{
+    char path[1200], dir[1100];
+    snprintf(path, sizeof(path), "%s/%s", music_dir, uri);
+    snprintf(dir, sizeof(dir), "%s", path);
+    char *sl = strrchr(dir, '/');
+    if (!sl) return -1;
+    *sl = 0;
+
+    DIR *d = opendir(dir);
+    if (!d) return -1;
+
+    char best[512] = "";
+    int best_score = 0;
+    struct dirent *de;
+    while ((de = readdir(d)) != NULL) {
+        if (de->d_name[0] == '.') continue;
+        int sc = score_img(de->d_name);
+        if (sc > best_score) {
+            best_score = sc;
+            snprintf(best, sizeof(best), "%s", de->d_name);
+            if (sc >= 100) break;      /* cover.jpg je vec idealan */
+        }
+    }
+    closedir(d);
+    if (!best[0]) return -1;
+
+    char img[1600];
+    snprintf(img, sizeof(img), "%s/%s", dir, best);
+    unsigned char *data = NULL; size_t n = 0;
+    if (read_file(img, &data, &n) != 0) return -1;
+
+    int rc = -1;
+    if (n > 8 && data[0] == 0x89 && data[1] == 'P') rc = decode_png(data, n, dst, w, h);
+    else if (n > 3 && data[0] == 0xff && data[1] == 0xd8) rc = decode_jpeg(data, n, dst, w, h);
+    free(data);
+    return rc;
+}
+
