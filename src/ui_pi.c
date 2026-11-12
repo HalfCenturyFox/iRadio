@@ -427,7 +427,8 @@ static void local_scan(void)
         if (!isdir) {
             const char *dot = strrchr(de->d_name, '.');
             if (!dot) continue;
-            static const char *ok[] = { ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".wav", ".opus", NULL };
+            static const char *ok[] = { ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".wav", ".opus",
+                                    ".wv", ".dsf", ".dff", ".aiff", ".aif", NULL };
             int good = 0;
             for (int i = 0; ok[i]; i++) if (!strcasecmp(dot, ok[i])) { good = 1; break; }
             if (!good) continue;

@@ -202,6 +202,20 @@ sudo systemctl enable --now mpd
 mpc status
 ```
 
+### 6.1b MPD and the NAS mount
+
+MPD must start **after** the CIFS mount, otherwise it indexes an empty directory at
+boot and removes the whole database (`update: removing ...`). Drop-in:
+
+```ini
+# /etc/systemd/system/mpd.service.d/10-nas.conf
+[Unit]
+After=remote-fs.target
+RequiresMountsFor=/mnt/nas
+```
+
+After adding files to the NAS: `mpc update` (or `mpc update "<folder>"`).
+
 ### 6.2 PulseAudio in system mode
 
 The radio runs as a system service (no logged-in user), so PulseAudio must run
@@ -214,6 +228,21 @@ load-module module-bluetooth-discover
 ```
 
 `auth-anonymous=1` lets the `mpd` user connect to `/run/pulse/native`.
+
+For hi-res material (WavPack/DXD 384 kHz, 32-bit float) `/etc/pulse/daemon.conf`:
+
+```
+default-sample-format = float32le
+default-sample-rate = 48000
+alternate-sample-rate = 44100
+avoid-resampling = yes
+resample-method = soxr-vhq
+```
+
+`avoid-resampling = yes` reopens the ALSA device at the rate of the current stream:
+a 44.1 kHz radio stream stays 44.1 kHz, a 384 kHz WavPack file goes to the DAC as
+`32-bit / 384 kHz` (PCM5102 handles it). Without it PulseAudio resamples everything
+to `default-sample-rate`.
 
 `/etc/systemd/system/pulseaudio.service`:
 
@@ -422,7 +451,7 @@ tools/make_bg.sh picture.avif        # avif/jpg/png → 800×480 RGB565 + instal
 | **Player** | cover, station/artist/album, song title, format line, seek, volume indicator (top right), DAC/BT icon, prev/play/next, MENU |
 | **Settings (menu)** | Stations · Output select · Local NAS · Settings · Queue, volume slider, Power (graceful `systemctl poweroff`) |
 | **Stations** | 20 preset streams; playing station is highlighted in ochre and centred |
-| **Local NAS** | browse folders; **tap a song = select** (ochre, multi-select); **Add to Queue** adds selected songs, or the whole folder when nothing is selected |
+| **Local NAS** | browse folders (`.flac .mp3 .ogg .m4a .aac .wav .opus .wv .dsf .dff .aiff`); **tap a song = select** (ochre, multi-select); **Add to Queue** adds selected songs, or the whole folder when nothing is selected |
 | **Queue** | MPD queue; tap a row to play it; **Load** → playlists; **Clear**; **Back** |
 | **Playlists** | saved MPD/myMPD playlists; multi-select; **Load2Q** appends them to the queue |
 | **Settings** | info, WiFi, Bluetooth |
