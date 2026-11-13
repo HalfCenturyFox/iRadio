@@ -53,6 +53,11 @@ apply() {
     esac
     T=$(target_for "$mode")
     [ -z "$T" ] && exit 1
+    cur=$(pactl get-default-sink 2>/dev/null)
+    if [ "$cur" = "$T" ]; then
+        echo "$mode" > "$STATE"
+        exit 0
+    fi
     was_playing=$(mpc status 2>/dev/null | grep -c '\[playing\]' || true)
     pactl set-default-sink "$T" 2>/dev/null || exit 1
     echo "$mode" > "$STATE"

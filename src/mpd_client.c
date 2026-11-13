@@ -64,11 +64,15 @@ int mpd_connect(mpd_t *m, const char *host, int port)
     struct addrinfo hints, *res = NULL, *it;
     char portstr[16];
     char line[256];
+    char hostbuf[64];
 
+    /* host moze da pokazuje u m->host (reconnect iz ui_timer) — kopiraj pre memset */
+    snprintf(hostbuf, sizeof(hostbuf), "%s", host ? host : "");
     memset(m, 0, sizeof(*m));
     m->fd = -1;
-    snprintf(m->host, sizeof(m->host), "%s", host);
+    snprintf(m->host, sizeof(m->host), "%s", hostbuf);
     m->port = port;
+    host = hostbuf;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family   = AF_UNSPEC;

@@ -2315,6 +2315,11 @@ static void ui_timer(lv_timer_t *t)
         if (mpd_connect(g_mpd, g_mpd->host, g_mpd->port) == 0) {
             g_connected = 1;
         } else {
+            /* ne ostani zauvek na splash-u ako MPD ne proradi */
+            if (scr_splash && lv_screen_active() == scr_splash && !getenv("OIR_SPLASH_HOLD")) {
+                static int splash_wait = 0;
+                if (++splash_wait > 16) nav_home();
+            }
             return;
         }
     }
