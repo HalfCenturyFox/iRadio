@@ -1093,7 +1093,7 @@ static void build_audio(void)
 
     audio_btns[0] = mk_btn(scr_audio, 24, 100, 752, 80, "DSP: Off", audio_mode_event, (void *)(intptr_t)0, 0);
     audio_btns[1] = mk_btn(scr_audio, 24, 196, 752, 80, "Clean  (HPF 45 Hz)", audio_mode_event, (void *)(intptr_t)1, 0);
-    audio_btns[2] = mk_btn(scr_audio, 24, 292, 752, 80, "Clean + EQ  (-2.5 dB @ 140 Hz)", audio_mode_event, (void *)(intptr_t)2, 0);
+    audio_btns[2] = mk_btn(scr_audio, 24, 292, 752, 80, "Clean + EQ  (85 Hz, -10 dB)", audio_mode_event, (void *)(intptr_t)2, 0);
     audio_refresh();
 }
 

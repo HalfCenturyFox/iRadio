@@ -453,7 +453,10 @@ only; Bluetooth is unaffected.
 |---|---|
 | **DSP: Off** | bit-perfect path (MPD → Pulse → DAC) |
 | **Clean** | high-pass 45 Hz, 12 dB/oct — removes sub-bass a small woofer cannot reproduce |
-| **Clean + EQ** | Clean plus −2.5 dB peaking EQ @140 Hz (Q 1.0) — tames port/room mud |
+| **Clean + EQ** | Clean plus −10 dB peaking EQ @85 Hz (Q 1.4) — measured room/speaker peak in the reference room |
+
+Presets were tuned from an in-room measurement (see the `Audio-Analyzer` project):
+the reference room had a +11 dB peak at ~80 Hz, and this preset flattens 60–500 Hz to ±3 dB.
 
 Implementation: a small LADSPA plugin (`tools/oir_dsp.c`, HPF + peaking + preamp) loaded
 through PulseAudio `module-ladspa-sink` as two idle sinks (`oir_dsp_clean`, `oir_dsp_eq`).

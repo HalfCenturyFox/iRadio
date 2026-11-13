@@ -13,6 +13,12 @@ dac_sink() { pactl list sinks short 2>/dev/null | awk '/soc_sound/{print $2; exi
 bt_sink()  { pactl list sinks short 2>/dev/null | awk '/bluez/{print $2; exit}'; }
 has_sink() { pactl list sinks short 2>/dev/null | awk '{print $2}' | grep -qx "$1"; }
 
+unload_dsp_sinks() {
+    for m in $(pactl list short modules 2>/dev/null | awk '/ladspa-sink/ && (/oir_dsp_clean/ || /oir_dsp_eq/) {print $1}'); do
+        pactl unload-module "$m" 2>/dev/null || true
+    done
+}
+
 load_sinks() {
     # ocisti stare module (preimenovanja)
     for m in $(pactl list short modules 2>/dev/null | awk '/ladspa-sink/ && /sink_name=oir_dsp / {print $1}'); do
@@ -22,11 +28,11 @@ load_sinks() {
     [ -z "$DAC" ] && return 1
     if ! has_sink "$SINK_CLEAN"; then
         pactl load-module module-ladspa-sink sink_name=$SINK_CLEAN sink_master="$DAC" \
-              plugin=$PLUGIN label=$PLUGIN control=45,140,0,0 >/dev/null 2>&1 || true
+              plugin=$PLUGIN label=$PLUGIN control=45,140,0,0,1 >/dev/null 2>&1 || true
     fi
     if ! has_sink "$SINK_EQ"; then
         pactl load-module module-ladspa-sink sink_name=$SINK_EQ sink_master="$DAC" \
-              plugin=$PLUGIN label=$PLUGIN control=45,140,-2.5,0 >/dev/null 2>&1 || true
+              plugin=$PLUGIN label=$PLUGIN control=45,85,-10,0,1.4 >/dev/null 2>&1 || true
     fi
 }
 
@@ -58,7 +64,7 @@ apply() {
 }
 
 case "${1:-status}" in
-    init)    load_sinks; exit $? ;;
+    init)    unload_dsp_sinks; load_sinks; exit $? ;;
     off|clean|clean_eq) apply "$1" ;;
     restore)
         # ako je BT izlaz aktivan, ne diraj DSP (BT ide direktno)
