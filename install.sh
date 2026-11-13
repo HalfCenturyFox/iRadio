@@ -33,13 +33,22 @@ if [ -d "$ROOT/assets/logos565" ]; then
     sudo cp -f "$ROOT/assets/logos565/"*.rgb565 "$PREFIX/assets/logos565/"
 fi
 
+say "DSP plugin (LADSPA)"
+if [ ! -f /usr/include/ladspa.h ]; then
+    echo "  ! ladspa.h missing — install: sudo apt install ladspa-sdk"
+else
+    gcc -O2 -shared -fPIC -o "$ROOT/build/oir_dsp.so" "$ROOT/tools/oir_dsp.c" -lm
+    sudo install -m 755 "$ROOT/build/oir_dsp.so" "$PREFIX/dsp/oir_dsp.so"
+    sudo install -m 644 "$ROOT/build/oir_dsp.so" /usr/lib/ladspa/oir_dsp.so
+fi
+
 say "Boot splash helper"
 gcc -O2 -o "$ROOT/build/bootsplash" "$ROOT/tools/bootsplash.c"
 sudo install -m 755 "$ROOT/build/bootsplash" "$PREFIX/splash/bootsplash"
 sudo install -m 755 "$ROOT/tools/splash-loop.sh" "$PREFIX/splash/splash-loop.sh"
 
 say "Helper scripts"
-for s in pulse-switch.sh bt-pair.sh bt-autoconnect.sh; do
+for s in pulse-switch.sh bt-pair.sh bt-autoconnect.sh audio-dsp.sh; do
     [ -f "$ROOT/$s" ] && sudo install -m 755 "$ROOT/$s" "$PREFIX/$s"
 done
 sudo mkdir -p /var/lib/radio-bt
@@ -47,7 +56,9 @@ sudo mkdir -p /var/lib/radio-bt
 say "systemd units"
 sudo install -m 644 "$ROOT/systemd/"*.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable radio-ui.service oir-splash.service pulseaudio.service
+sudo mkdir -p /etc/systemd/system/pulseaudio.service.d
+sudo install -m 644 "$ROOT/systemd/pulseaudio.service.d/10-dsp.conf" /etc/systemd/system/pulseaudio.service.d/
+sudo systemctl enable radio-ui.service oir-splash.service pulseaudio.service oir-dsp.service
 sudo systemctl enable oir-bt-autoconnect.service oir-out-restore.service 2>/dev/null || true
 sudo systemctl restart radio-ui.service
 

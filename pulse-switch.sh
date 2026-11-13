@@ -40,4 +40,8 @@ for i in $(pactl list sink-inputs short 2>/dev/null | awk '{print $1}'); do
     pactl move-sink-input "$i" "$S" >/dev/null 2>&1
 done
 echo "$TARGET" > "$STATE"
+# ako je DAC izabran, vrati sacuvani DSP preset (BT ide direktno)
+if [ "$TARGET" = "dac" ] && [ -x /opt/radio/audio-dsp.sh ]; then
+    /opt/radio/audio-dsp.sh restore >/dev/null 2>&1 || true
+fi
 exit 0

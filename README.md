@@ -444,6 +444,31 @@ tools/make_bg.sh picture.avif        # avif/jpg/png → 800×480 RGB565 + instal
 
 ---
 
+## 9b. Audio Settings (DSP presets)
+
+Settings → **Audio Settings** (speaker icon) toggles tone shaping for the DAC output
+only; Bluetooth is unaffected.
+
+| Preset | What it does |
+|---|---|
+| **DSP: Off** | bit-perfect path (MPD → Pulse → DAC) |
+| **Clean** | high-pass 45 Hz, 12 dB/oct — removes sub-bass a small woofer cannot reproduce |
+| **Clean + EQ** | Clean plus −2.5 dB peaking EQ @140 Hz (Q 1.0) — tames port/room mud |
+
+Implementation: a small LADSPA plugin (`tools/oir_dsp.c`, HPF + peaking + preamp) loaded
+through PulseAudio `module-ladspa-sink` as two idle sinks (`oir_dsp_clean`, `oir_dsp_eq`).
+Switching a preset only changes the default sink and restarts MPD, so nothing is
+loaded/unloaded while audio is running. `audio-dsp.sh` keeps the state in
+`/opt/radio/dsp-last`, `oir-dsp.service` loads the sinks at boot and the
+`pulseaudio.service.d` drop-in restores the saved preset after any PulseAudio restart.
+
+```bash
+/opt/radio/audio-dsp.sh status        # off|clean|clean_eq
+/opt/radio/audio-dsp.sh clean        # from a shell
+```
+
+Build dependency: `sudo apt install ladspa-sdk` (only needed to compile the plugin).
+
 ## 10. Using the radio
 
 | Screen | What it does |

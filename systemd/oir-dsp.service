@@ -1,0 +1,12 @@
+[Unit]
+Description=OIR DSP sinks (LADSPA HPF/EQ)
+After=pulseaudio.service
+Wants=pulseaudio.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/radio/audio-dsp.sh init
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

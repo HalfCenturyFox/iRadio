@@ -29,7 +29,8 @@
 
 static mpd_t *g_mpd;
 static int g_connected;
-static lv_obj_t *scr_player, *scr_stations, *scr_settings, *scr_local, *scr_menu, *scr_queue;
+static lv_obj_t *scr_player, *scr_stations, *scr_settings, *scr_local, *scr_menu, *scr_queue, *scr_audio;
+static lv_obj_t *audio_btns[3];
 static lv_obj_t *queue_list;
 static lv_obj_t *scr_pl, *pl_list;
 #define PL_MAX 64
@@ -616,6 +617,7 @@ static void power_event(lv_event_t *e)
 }
 
 static void queue_event(lv_event_t *e);
+static void audio_refresh(void);
 static void pl_fill(void);
 static void pl_event(lv_event_t *e);
 static void queue_fill(void);
@@ -1019,6 +1021,82 @@ static void build_playlists(void)
     lv_obj_set_flex_flow(pl_list, LV_FLEX_FLOW_COLUMN);
 }
 
+/* ---------------- AUDIO (DSP preset) ---------------- */
+#define DSP_STATE_FILE "/opt/radio/dsp-last"
+static const char *audio_modes[3] = { "off", "clean", "clean_eq" };
+
+static void audio_read(char *out, size_t n)
+{
+    out[0] = 0;
+    FILE *f = fopen(DSP_STATE_FILE, "r");
+    if (!f) { snprintf(out, n, "off"); return; }
+    if (!fgets(out, n, f)) out[0] = 0;
+    fclose(f);
+    char *nl = strchr(out, '\n');
+    if (nl) *nl = 0;
+    if (!out[0]) snprintf(out, n, "off");
+}
+
+static void audio_refresh(void)
+{
+    char st[32];
+    audio_read(st, sizeof(st));
+    for (int i = 0; i < 3; i++) {
+        lv_obj_t *b = audio_btns[i];
+        if (!b) continue;
+        int on = !strcmp(st, audio_modes[i]);
+        style_btn(b, on ? 0x3B3117 : COL_PANEL, on ? 0xF2CB61 : COL_TEXT, on ? 1 : 0);
+        if (on) lv_obj_set_style_border_color(b, lv_color_hex(0xD4A72C), 0);
+        lv_obj_t *l = lv_obj_get_child(b, 0);
+        if (l) lv_obj_set_style_text_color(l, lv_color_hex(on ? 0xF2CB61 : COL_TEXT), 0);
+    }
+}
+
+static void audio_mode_event(lv_event_t *e)
+{
+    int idx = (int)(intptr_t)lv_event_get_user_data(e);
+    if (idx < 0 || idx > 2) return;
+    char cmd[160];
+    snprintf(cmd, sizeof(cmd), "/opt/radio/audio-dsp.sh %s >/dev/null 2>&1", audio_modes[idx]);
+    system(cmd);
+    audio_refresh();
+}
+
+static void audio_event(lv_event_t *e)
+{
+    (void)e;
+    audio_refresh();
+    nav_to(scr_audio);
+}
+
+static void build_audio(void)
+{
+    scr_audio = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(scr_audio, lv_color_hex(COL_BG), 0);
+    apply_bg(scr_audio);
+    lv_obj_set_style_pad_all(scr_audio, 0, 0);
+    lv_obj_clear_flag(scr_audio, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *h = lv_label_create(scr_audio);
+    lv_obj_set_pos(h, 24, 21);
+    lv_obj_set_style_text_color(h, lv_color_hex(COL_TEXT), 0);
+    lv_obj_set_style_text_font(h, &lv_font_montserrat_28, 0);
+    lv_label_set_text(h, "Audio Settings");
+
+    mk_btn(scr_audio, 654, 16, 122, 44, "Back", back_event, NULL, 0);
+
+    lv_obj_t *hint = lv_label_create(scr_audio);
+    lv_obj_set_pos(hint, 24, 70);
+    lv_obj_set_style_text_color(hint, lv_color_hex(COL_DIM), 0);
+    lv_obj_set_style_text_font(hint, &lv_font_montserrat_16, 0);
+    lv_label_set_text(hint, "Tone shaping for the DAC output (BT is unaffected)");
+
+    audio_btns[0] = mk_btn(scr_audio, 24, 100, 752, 80, "DSP: Off", audio_mode_event, (void *)(intptr_t)0, 0);
+    audio_btns[1] = mk_btn(scr_audio, 24, 196, 752, 80, "Clean  (HPF 45 Hz)", audio_mode_event, (void *)(intptr_t)1, 0);
+    audio_btns[2] = mk_btn(scr_audio, 24, 292, 752, 80, "Clean + EQ  (-2.5 dB @ 140 Hz)", audio_mode_event, (void *)(intptr_t)2, 0);
+    audio_refresh();
+}
+
 /* ---------------- QUEUE ---------------- */
 static void queue_play_event(lv_event_t *e)
 {
@@ -1384,6 +1462,7 @@ static void build_menu(void)
     lv_obj_align(ol, LV_ALIGN_LEFT_MID, 120, 0);
     mk_btn(scr_menu, 408, 180, 368, 88, LV_SYMBOL_SETTINGS "    Settings", settings_event, NULL, 0);
     mk_btn(scr_menu, 24, 276, 368, 88, LV_SYMBOL_LIST "    Queue", queue_event, NULL, 0);
+    mk_btn(scr_menu, 408, 276, 368, 88, LV_SYMBOL_VOLUME_MAX "    Audio Settings", audio_event, NULL, 0);
 }
 
 static void build_stations(void)
@@ -2402,6 +2481,7 @@ void ui_pi_init(mpd_t *mpd, int mpd_connected)
     build_menu();
     build_queue();
     build_playlists();
+    build_audio();
     build_stations();
     build_settings();
     build_local();
@@ -2412,6 +2492,7 @@ void ui_pi_init(mpd_t *mpd, int mpd_connected)
     if (start && !strcmp(start, "splash")) first = scr_splash;
     else if (start && !strcmp(start, "queue")) { queue_fill(); first = scr_queue; }
     else if (start && !strcmp(start, "playlists")) { pl_fill(); first = scr_pl; }
+    else if (start && !strcmp(start, "audio")) { audio_refresh(); first = scr_audio; }
     else if (start && !strcmp(start, "menu")) first = scr_menu;
     else if (start && !strcmp(start, "local")) first = scr_local;
     else if (start && !strcmp(start, "wifi")) { wifi_scan_now(); wifi_fill(); first = scr_wifi; }
