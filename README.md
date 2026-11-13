@@ -469,6 +469,34 @@ loaded/unloaded while audio is running. `audio-dsp.sh` keeps the state in
 
 Build dependency: `sudo apt install ladspa-sdk` (only needed to compile the plugin).
 
+## 9c. Room measurement (optional)
+
+Signals live in `assets/test-signals/` (FLAC 48k/24): log sweep 20 Hz–20 kHz (12 s),
+pink noise (30 s) and a 1 kHz reference.
+
+Measure with a second Pi (Zero 2W + **INMP441** I2S mic, wiring in
+`docs/screenshots/inmp441-wiring.png`):
+
+```
+# /boot/firmware/config.txt on the measuring Pi
+dtoverlay=googlevoicehat-soundcard
+dtparam=audio=off
+
+arecord -D hw:1,0 -f S32_LE -r 48000 -c 2 rec.wav      # INMP441 = left channel
+```
+
+Analysis (needs numpy+scipy, e.g. a venv):
+
+```bash
+python3 -m venv ~/.venvs/measure && ~/.venvs/measure/bin/pip install numpy scipy
+~/.venvs/measure/bin/python tools/measure.py rec.wav --mode pink
+~/.venvs/measure/bin/python tools/measure.py rec.wav --mode sweep
+```
+
+Output: 1/3-octave response (0 dB = 1 kHz), RT60 (sweep mode) and suggested parametric
+EQ cuts for peaks 40–300 Hz. INMP441 is specified ±3 dB from ~60 Hz, so ignore the
+lowest bands when judging sub-bass.
+
 ## 10. Using the radio
 
 | Screen | What it does |
